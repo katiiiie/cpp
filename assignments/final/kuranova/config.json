@@ -1,0 +1,10 @@
+{
+  "host": "ai-api.hurated.com",
+  "port": "443",
+  "mcount": 10,
+  "local_host": "http://127.0.0.1",
+  "local_port": "8080",
+  "local_mcount": 4,
+  "api_key": "your key",
+  "mode": "local"
+}
