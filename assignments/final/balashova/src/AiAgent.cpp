@@ -38,7 +38,7 @@ bool AiAgent::loadConfig(const std::string& path, std::string* err) {
             auto h = j.at("hurated");
             cfg_.hurated.host = h.at("host").get<std::string>();
             cfg_.hurated.api_key = h.at("api_key").get<std::string>();
-            if (h.contains("port")) cfg_.hurated.port = j.at("port").get<std::string>();
+            if (h.contains("port")) cfg_.hurated.port = h.at("port").get<std::string>();
         } else if (cfg_.mode == "local") {
             if (!j.contains("local")) { if (err) *err = "config.json: missing 'local' section"; return false; }
             auto l = j.at("local");
