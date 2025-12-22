@@ -45,6 +45,8 @@ int main(int argc, char **argv) {
         std::getline(std::cin, userInput);
         
         if (userInput == "quit" || userInput == "exit") {
+            //FIX
+            teacher.stopLocalServer();
             break;
         }
     
@@ -60,6 +62,6 @@ int main(int argc, char **argv) {
         }
     }
 
-    std::cout << "Thank you for learning! Session saved.\n";
+    std::cout << "Thank you for learning!\n";
     return 0;
 }

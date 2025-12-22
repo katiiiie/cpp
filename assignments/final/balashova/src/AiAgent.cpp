@@ -3,6 +3,7 @@
 #include <sstream>
 #include <vector>
 #include <cstring>
+//#include <iostream>
 
 #include <openssl/ssl.h>
 #include <openssl/err.h>
@@ -27,22 +28,39 @@ bool AiAgent::loadConfig(const std::string& path, std::string* err) {
     if (!readWholeFile(path, s, err)) return false;
     try {
         auto j = json::parse(s);
-       // if (mode == Mode::Hurated) {
-            // обязательные поля через at(); port можно оставить как есть, если отсутствует
-            cfg_.host   = j.at("host").get<std::string>();
-            if (j.contains("port")) cfg_.port = j.at("port").get<std::string>();
-            cfg_.api_key = j.at("api_key").get<std::string>();
-        /*} else if (j.at("mode".get<std::string>() == "hurated") {
-            cfg_.host   = j.at("host").get<std::string>();
-            if (j.contains("port")) cfg_.port = j.at("port").get<std::string>();
-            cfg_.api_key = j.at("api_key").get<std::string>();
-        }*/
+
+        // mode
+        if (j.contains("mode")) cfg_.mode = j.at("mode").get<std::string>();
+        else { if (err) *err = "config.json: missing 'mode'"; return false; }
+     
+        if (cfg_.mode == "hurated") {
+            if (!j.contains("hurated")) { if (err) *err = "config.json: missing 'hurated' section"; return false; }
+            auto h = j.at("hurated");
+            cfg_.hurated.host = h.at("host").get<std::string>();
+            cfg_.hurated.api_key = h.at("api_key").get<std::string>();
+            if (h.contains("port")) cfg_.hurated.port = j.at("port").get<std::string>();
+        } else if (cfg_.mode == "local") {
+            if (!j.contains("local")) { if (err) *err = "config.json: missing 'local' section"; return false; }
+            auto l = j.at("local");
+            cfg_.local.backend = l.at("backend").get<std::string>();
+            cfg_.local.model_path = l.at("model_path").get<std::string>();
+            if (l.contains("port")) cfg_.local.port = l.at("port").get<std::string>();
+            if (l.contains("context_length")) cfg_.local.context_length = l.at("context_length").get<int>();
+            if (l.contains("extra_args")) cfg_.local.extra_args = l.at("extra_args").get<std::string>();
+            
+            startLocalServer(err);
+        } else {
+            if (err) *err = "Unsupported mode: " + cfg_.mode;
+            return false;
+        }
+
         return true;
     } catch (const std::exception& e) {
         if (err) *err = std::string("Config parse error: ") + e.what();
         return false;
     }
 }
+
 
 bool AiAgent::loadPrompt(const std::string& path, std::string* err) {
     std::string s;
@@ -81,7 +99,7 @@ std::string AiAgent::extractTextFromJsonBody(const std::string& body) {
 
 // -------- Низкоуровневый HTTPS POST на /api/generate --------
 std::optional<std::string> AiAgent::httpsPostGenerate(
-        const AiConfig& cfg, const std::string& jsonBody, std::string* err) {
+        const HuratedCfg& cfg, const std::string& jsonBody, std::string* err) {
     SSL_library_init();
     SSL_load_error_strings();
     OpenSSL_add_all_algorithms();
@@ -148,10 +166,11 @@ std::optional<std::string> AiAgent::httpsPostGenerate(
         if (err) *err = "Cannot extract \"text\" from JSON response";
         return std::nullopt;
     }
+   
     return text;
 }
 
-std::optional<std::string> AiAgent::ask(std::string* outErr) const {
+/*std::optional<std::string> AiAgent::ask(std::string* outErr) const {
     if (cfg_.host.empty() || cfg_.api_key.empty()) {
         if (outErr) *outErr = "Config not loaded or api_key/host missing";
         return std::nullopt;
@@ -166,4 +185,4 @@ std::optional<std::string> AiAgent::ask(std::string* outErr) const {
     const std::string body = payload.dump();
 
     return httpsPostGenerate(cfg_, body, outErr);
-}
+}*/

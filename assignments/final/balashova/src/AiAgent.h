@@ -3,12 +3,30 @@
 #include <optional>
 #include <nlohmann/json.hpp>
 #include <sqlite3.h>
+#include <sys/types.h>
+#include <sys/wait.h>
+#include <unistd.h>
 
-struct AiConfig {
+struct HuratedCfg {
     std::string host;
     std::string port = "443";
     std::string api_key;
+};
 
+struct LocalCfg {
+    std::string backend;    // "llama.cpp"
+    std::string model_path;
+    int context_length = 2048;
+    std::string port = "8080";
+    std::string extra_args;
+    int server_pid;
+    bool server_running = false;
+};
+
+struct AiConfig {
+    std::string mode; // "hurated" or "local"
+    HuratedCfg hurated;
+    LocalCfg local;
 };
 
 struct LearningSession {
@@ -52,12 +70,17 @@ public:
 
     // Получить текущую активную сессию
     const LearningSession& getCurrentSession() const { return currentSession_; }
+    
+    bool startLocalServer(std::string* err);
+    void stopLocalServer();
 
 private:
     // Низкоуровневый HTTPS POST запрос
     static std::optional<std::string> httpsPostGenerate(
-        const AiConfig& cfg, const std::string& jsonBody, std::string* err);
-
+        const HuratedCfg& cfg, const std::string& jsonBody, std::string* err);
+        
+    std::optional<std::string> localPostGenerate(
+        const LocalCfg& cfg, const std::string& prompt, std::string* err);
     // Извлечь текст из JSON ответа
     static std::string extractTextFromJsonBody(const std::string& body);
 
